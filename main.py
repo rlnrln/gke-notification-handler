@@ -54,22 +54,14 @@ def notify_slack(event, context):
 
         # Shared Variables
         cluster = event["attributes"]["cluster_name"]
-        cluster_resource = json.loads(event["attributes"]["payload"])["resourceType"]
         location = event["attributes"]["cluster_location"]
+        payload = json.loads(event["attributes"]["payload"])
         message = base64.b64decode(event["data"]).decode("utf-8")
         project = event["attributes"]["project_id"]
         webhook_url = os.getenv("SLACK_WEBHOOK_URL")
 
         # UpgradeEvent
         if "UpgradeEvent" in event["attributes"]["type_url"]:
-            # UpgradeEvent Variables
-            current_version = json.loads(event["attributes"]["payload"])[
-                "currentVersion"
-            ]
-            start_time = json.loads(event["attributes"]["payload"])[
-                "operationStartTime"
-            ]
-            target_version = json.loads(event["attributes"]["payload"])["targetVersion"]
             title = f"GKE Cluster Upgrade Notification :zap:"
             slack_data = {
                 "username": "Platform Notifications",
@@ -96,22 +88,22 @@ def notify_slack(event, context):
                             },
                             {
                                 "title": "Update Type",
-                                "value": cluster_resource,
+                                "value": payload["resourceType"],
                                 "short": "false",
                             },
                             {
                                 "title": "Current Version",
-                                "value": current_version,
+                                "value": payload["currentVersion"],
                                 "short": "false",
                             },
                             {
                                 "title": "Target Version",
-                                "value": target_version,
+                                "value": payload["targetVersion"],
                                 "short": "false",
                             },
                             {
                                 "title": "Start Time",
-                                "value": start_time,
+                                "value": payload["operationStartTime"],
                                 "short": "false",
                             },
                             {
@@ -126,11 +118,7 @@ def notify_slack(event, context):
             process_event(slack_data, webhook_url)
         # UpgradeAvailableEvent
         elif "UpgradeAvailableEvent" in event["attributes"]["type_url"]:
-            if os.getenv("SEND_UPGRADE_AVAILABLE_NOTIFICATIONS") == "enabled":
-                # UpgradeAvailableEvent Variables
-                available_version = json.loads(event["attributes"]["payload"])[
-                    "version"
-                ]
+            if os.getenv("SEND_UPGRADE_AVAILABLE_NOTIFICATIONS") != "disabled":
                 title = f"GKE Cluster Upgrade Available Notification :zap:"
                 slack_data = {
                     "username": "Platform Notifications",
@@ -157,12 +145,12 @@ def notify_slack(event, context):
                                 },
                                 {
                                     "title": "Eligible Resource",
-                                    "value": cluster_resource,
+                                    "value": payload["resourceType"],
                                     "short": "false",
                                 },
                                 {
                                     "title": "Eligible Version",
-                                    "value": available_version,
+                                    "value": payload["version"],
                                     "short": "false",
                                 },
                                 {
@@ -177,9 +165,58 @@ def notify_slack(event, context):
                 process_event(slack_data, webhook_url)
             else:
                 pass
+        # SecurityBulletinEvent
+        elif "SecurityBulletinEvent" in event["attributes"]["type_url"]:
+            if os.getenv("SEND_SECURITY_BULLETIN_NOTIFICATIONS") != "disabled":
+                title = f"GKE Cluster Security Bulletin Notification :zap:"
+                slack_data = {
+                    "username": "Platform Notifications",
+                    "icon_emoji": ":alert:",
+                    "attachments": [
+                        {
+                            "color": "#970000",
+                            "fields": [
+                                {"title": title},
+                                {
+                                    "title": "Project",
+                                    "value": project,
+                                    "short": "false",
+                                },
+                                {
+                                    "title": "Cluster",
+                                    "value": cluster,
+                                    "short": "false",
+                                },
+                                {
+                                    "title": "Location",
+                                    "value": location,
+                                    "short": "false",
+                                },
+                                {
+                                    "title": "Severity",
+                                    "value": payload["severity"],
+                                    "short": "false",
+                                },
+                                {
+                                    "title": "Security Bulletin",
+                                    "value": "[" + payload["bulletinId"] +"](" + payload["bulletinUri"] +")",
+                                    "short": "false",
+                                },
+                                {
+                                    "title": "Details",
+                                    "value": payload["briefDescription"],
+                                    "short": "false",
+                                },
+                            ],
+                        }
+                    ],
+                }
+                process_event(slack_data, webhook_url)
+            else:
+                pass
         else:
             print(
-                "Event was neither UpgradeEvent or UpgradeAvailableEvent, so it will be skipped."
+                "Event was neither UpgradeEvent, UpgradeAvailableEvent, or SecurityBulletinEvent, so it will be skipped."
             )
             exit(0)
     else:
