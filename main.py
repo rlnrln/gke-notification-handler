@@ -119,7 +119,7 @@ def notify_slack(event, context):
         # UpgradeAvailableEvent
         elif "UpgradeAvailableEvent" in event["attributes"]["type_url"]:
             if os.getenv("SEND_UPGRADE_AVAILABLE_NOTIFICATIONS") != "disabled":
-                title = f"GKE Cluster Upgrade Available Notification :zap:"
+                title = f"GKE Cluster Upgrade Available Notification :eyes:"
                 slack_data = {
                     "username": "Platform Notifications",
                     "icon_emoji": ":satellite:",
@@ -168,10 +168,10 @@ def notify_slack(event, context):
         # SecurityBulletinEvent
         elif "SecurityBulletinEvent" in event["attributes"]["type_url"]:
             if os.getenv("SEND_SECURITY_BULLETIN_NOTIFICATIONS") != "disabled":
-                title = f"GKE Cluster Security Bulletin Notification :zap:"
+                title = f"GKE Cluster Security Bulletin Notification :alert:"
                 slack_data = {
                     "username": "Platform Notifications",
-                    "icon_emoji": ":alert:",
+                    "icon_emoji": ":satellite:",
                     "attachments": [
                         {
                             "color": "#970000",
@@ -199,7 +199,7 @@ def notify_slack(event, context):
                                 },
                                 {
                                     "title": "Security Bulletin",
-                                    "value": "[" + payload["bulletinId"] +"](" + payload["bulletinUri"] +")",
+                                    "value": "<" + payload["bulletinUri"] +"|" + payload["bulletinId"] +">",
                                     "short": "false",
                                 },
                                 {
